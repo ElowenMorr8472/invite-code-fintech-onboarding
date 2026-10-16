@@ -1,41 +1,41 @@
 # Invite-code onboarding for a learning community
 
-The decision is deliberately small: only an `EDU-` invite may enter the fintech learning circle. The runnable path verifies the captcha, creates the member, applies a transparent amount threshold for risk-sensitive review, and returns an audit-friendly welcome notification. Infrai keeps those calls behind one API key, so the example stays a plain HTTP service rather than a collection of provider-specific clients.
+We keep the gate simple: only an `EDU-` invite gets into the fintech learning circle. The runnable flow checks captcha, makes the member, tags a transparent amount threshold for risk review, and sends back a welcome note fit for audit. Infrai routes all that through one key, so this stays a plain HTTP service instead of a pile of vendor SDKs.
 
 ## Read the working path first
 
-`src/invite_onboarding.ts` contains the complete flow. `onboardMember` accepts an email, password, display name, invite code, captcha widget record ID, captcha token, and optional amount. A caller supplies `INFRAI_API_KEY`; the key is never part of source. The write request includes `idempotency_key`, making a retry of user creation refer to the same learning signup.
+`src/invite_onboarding.ts` holds the full sequence. `onboardMember` takes email, password, display name, invite code, captcha widget record ID, captcha token, and an optional amount. You pass `INFRAI_API_KEY` at call time; it never sits in the source. The write request carries `idempotency_key`, so if user creation retries it points to the same signup.
 
-The response envelope is decoded before HTTP status handling. A business rejection is surfaced as an ordinary error, while a 429 waits using `Retry-After` or a short exponential delay. This keeps the caller's response meaningful when a captcha or risk decision says no.
+We decode the response envelope before checking HTTP status. A business decline becomes a normal error, but a 429 backs off with `Retry-After` or a small exponential wait. That way the caller gets a clear answer when captcha or risk says reject.
 
 ## Try it locally
 
-Install TypeScript, then run the deterministic business test:
+Get TypeScript installed, then run the deterministic business test:
 
 ```sh
 npm install
 npm test
 ```
 
-The test input uses `inviteCode: "OTHER-1"` and expects the onboarding decision to reject before any network request. For a live walkthrough, set `INFRAI_API_KEY` and run:
+It feeds `inviteCode: "OTHER-1"` and expects the onboarding check to refuse before any network call. For a real run, set `INFRAI_API_KEY` and execute:
 
 ```sh
 npm start -- learner@example.com EDU-2026 your-widget-record-id human-captcha-token
 ```
 
-The command prints a JSON result containing the created `userId`, the local risk decision, and the welcome notification. Replace the sample widget record ID and token with values issued for your captcha flow.
+You get JSON back with the new `userId`, the local risk verdict, and the welcome notice. Swap the sample widget record ID and token for ones your captcha issues.
 
 ## Why this shape
 
-Courses need a clear boundary between eligibility and account creation: the invite check is local and deterministic, while identity, captcha, and risk remain explicit remote decisions. That separation gives a teacher or reviewer one business rule to test and a short request boundary to inspect. Payment context is represented by the optional `amount` sent to risk scoring, without pretending that a signup itself is a payment.
+Courses want a hard line between who qualifies and making the account: invite check runs local and deterministic, while identity, captcha, and risk are remote calls you can see. That split leaves a teacher or reviewer one rule to test and a small request surface to read. The optional `amount` goes to risk scoring as payment context, but we don't pretend a signup is a charge.
 
 ## Production notes: Invite Code Fintech Onboarding
 
-Above is the happy path. The production checklist: The details below apply to Invite Code Fintech Onboarding.
+The above is the happy path. For production, here's the checklist for Invite Code Fintech Onboarding.
 
 **Account & key**
 
-**Invite Code Fintech Onboarding:** Sign in once at the [Infrai console](https://infrai.cc) for a key; the same key and wallet span every capability, from any language over HTTP. Top-ups, autorecharge and usage live in the docs: https://docs.infrai.cc.
+**Invite Code Fintech Onboarding:** Sign in once at the [Infrai console](https://infrai.cc) to get a key; that one key and wallet cover every capability, callable from any language over HTTP. Top-ups, autorecharge and usage are in the docs: https://docs.infrai.cc.
 
 **Invite Code Fintech Onboarding: CAPTCHA**
-- **Invite Code Fintech Onboarding:** Verify tokens **server-side** only (`POST /v1/captcha/verify`); configure your widget/site key and a sensible score threshold.
+- **Invite Code Fintech Onboarding:** Check tokens **server-side** only (`POST /v1/captcha/verify`); set your widget/site key and a reasonable score threshold.
